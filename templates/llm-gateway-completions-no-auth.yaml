@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/apigee/apigee-templater/main/schema/gateway.schema.1.0.json
+# Deploys an OpenAI-compatible Chat Completions AI Gateway proxy without consumer authentication.
 name: REST-AI-Completions
 displayName: Completions API
 type: template
@@ -11,8 +12,11 @@ features:
   - ../features/ai-model-preprocess.yaml
   - ../features/ai-model-failover.yaml
   - ../features/ai-model-postprocess.yaml
-  - ../features/ai-token-quota.yaml
 parameters:
+  - name: CompletionsBasePath
+    default: /v1/chat/completions
+  - name: GoogleCloudProject
+    default: "{organization.name}"
   - name: SimpleModel
     default: google/gemini-3.5-flash-lite
   - name: MediumModel
@@ -22,12 +26,12 @@ parameters:
   - name: ThinkingModel
     default: anthropic/claude-opus-5
   - name: ModelRouting
-    default: "'google/*'=googlecloud-oai,'zai-org/*=googlecloud-oai','anthropic/*'=googlecloud"
+    default: "'google/*'=googlecloud-oai,'zai-org/*'=googlecloud-oai,'anthropic/*'=googlecloud"
   - name: ModelMapping
     default: "gemini-flash-latest=gemini-3.7-flash,gemini-2.5-flash=gemini-3.7-flash"
 endpoints:
   - name: completions
-    basePath: /v1/chat/completions
+    basePath: "{CompletionsBasePath}"
     routes:
       - name: route-googlecloud
         target: googlecloud
