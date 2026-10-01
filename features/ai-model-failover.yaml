@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/apigee/apigee-templater/main/schema/gateway.schema.1.0.json
-name: ai-failover
+# Intercepts target failures in defaultFaultRule and executes failover routing to Google Cloud Vertex AI OpenAI endpoint.
+name: ai-model-failover
 displayName: AI Target Failover Handler
 type: feature
 description: Intercepts target failures in defaultFaultRule and executes failover routing to Google Cloud Vertex AI OpenAI endpoint.
@@ -7,6 +8,7 @@ documentation: "https://gcp-samples.github.io/apigee-template-repository?file=fe
 gateway: apigee
 schemaVersion: 1.0.0
 categories:
+  - llm
   - ai
   - traffic
 parameters:
@@ -72,14 +74,14 @@ policies:
           Set:
             Verb: POST
             Headers:
-            - Header:
-                metadata:
-                  name: Content-Type
-                _text: application/json
-            - Header:
-                metadata:
-                  name: Authorization
-                _text: "{response.header.authorization}"
+              - Header:
+                  metadata:
+                    name: Content-Type
+                  _text: application/json
+              - Header:
+                  metadata:
+                    name: Authorization
+                  _text: "{response.header.authorization}"
             Payload:
               metadata:
                 contentType: application/json
