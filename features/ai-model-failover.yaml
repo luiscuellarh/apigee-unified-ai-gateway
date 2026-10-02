@@ -1,6 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/apigee/apigee-templater/main/schema/gateway.schema.1.0.json
-# Intercepts target failures in defaultFaultRule and executes failover routing to Google Cloud Vertex AI OpenAI endpoint.
-name: ai-model-failover
+# Intercepts target failures in defaultFaultRule and executes failover routing to Google Cloud Vertex AI OpenAI endpoint.\nname: ai-model-failover
 displayName: AI Target Failover Handler
 type: feature
 description: Intercepts target failures in defaultFaultRule and executes failover routing to Google Cloud Vertex AI OpenAI endpoint.
@@ -14,6 +13,8 @@ categories:
 parameters:
   - name: GoogleCloudProject
     default: "{organization.name}"
+  - name: GoogleCloudRegion
+    default: global
 defaultEndpoint:
   name: default
   basePath: /ai-failover
@@ -99,7 +100,7 @@ policies:
         Response: failoverResponse
         HTTPTargetConnection:
           Properties: {}
-          URL: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/global/endpoints/openapi/chat/completions
+          URL: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/endpoints/openapi/chat/completions
   - name: JS-SetFailoverResponse
     type: Javascript
     content:
