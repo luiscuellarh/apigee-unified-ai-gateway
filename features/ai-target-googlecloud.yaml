@@ -13,6 +13,8 @@ categories:
 parameters:
   - name: GoogleCloudProject
     default: "{organization.name}"
+  - name: GoogleCloudRegion
+    default: global
 defaultEndpoint:
   name: default
   routes:
@@ -27,7 +29,7 @@ defaultEndpoint:
 endpoints: []
 targets:
   - name: googlecloud-oai
-    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/global/endpoints/openapi/chat/completions
+    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/endpoints/openapi/chat/completions
     flows:
       - name: PreFlow
         mode: Request
@@ -35,7 +37,7 @@ targets:
           - name: AM-SetGoogleToken
             condition: request.header.Authorization == null or request.header.Authorization !=| "Bearer ya29."
   - name: googlecloud
-    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/global/publishers/{ai.provider}/models/{ai.model}:{ai.method}
+    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/publishers/{ai.provider}/models/{ai.model}:{ai.method}
     flows:
       - name: PreFlow
         mode: Request
