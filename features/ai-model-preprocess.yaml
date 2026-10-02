@@ -39,7 +39,7 @@ defaultEndpoint:
         - name: AM-SetVariables
         - name: JS-CheckModel
         - name: AM-SetGoogleToken
-          condition: ai.model JavaRegex "^smart-.*" AND request.header.Authorization == null
+          condition: ai.model JavaRegex "^smart-.*"
         - name: SC-ModelJudge
           condition: ai.model JavaRegex "^smart-.*"
         - name: JS-EvaluateSmartModel
