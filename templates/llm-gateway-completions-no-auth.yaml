@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/apigee/apigee-templater/main/schema/gateway.schema.1.0.json
 # Deploys an OpenAI-compatible Chat Completions AI Gateway proxy without consumer authentication.
-name: REST-AI-Completions
-displayName: Completions API
+name: llm-gateway-completions-no-auth
+displayName: Completions API No AUTH
 type: template
 description: API template for REST-AI-Completions
 gateway: apigee
