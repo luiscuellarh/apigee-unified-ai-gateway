@@ -1317,4 +1317,63 @@ resources:
               var stopReason = eventData.delta.stop_reason;
               var finishReason = "stop";
               if (stopReason === "max_tokens") finishReason = "length";
-              else if (stopReason === "end_turn" || stopReason === "stop
+              else if (stopReason === "end_turn" || stopReason === "stop_sequence") finishReason = "stop";
+              else if (stopReason === "tool_use") finishReason = "tool_calls";
+              else if (stopReason) finishReason = stopReason.toLowerCase();
+
+              if (eventData.usage) {
+                if (eventData.usage.input_tokens !== undefined) {
+                  usageData.requestTokenCount = eventData.usage.input_tokens;
+                }
+                if (eventData.usage.output_tokens !== undefined) {
+                  usageData.responseTokenCount = eventData.usage.output_tokens;
+                }
+                usageData.totalTokenCount = usageData.requestTokenCount + usageData.responseTokenCount;
+                if (usageData.requestTokenCount > 0 || usageData.responseTokenCount > 0) {
+                  usageData.usageFound = true;
+                }
+              }
+
+              var stopChunk = {
+                id: activeMsgId,
+                object: "chat.completion.chunk",
+                created: created,
+                model: model,
+                choices: [
+                  {
+                    index: 0,
+                    delta: {},
+                    finish_reason: finishReason
+                  }
+                ]
+              };
+
+              if (usageData.usageFound) {
+                stopChunk.usage = {
+                  prompt_tokens: usageData.requestTokenCount,
+                  completion_tokens: usageData.responseTokenCount,
+                  total_tokens: usageData.totalTokenCount
+                };
+              }
+
+              outputChunks.push("data: " + JSON.stringify(stopChunk));
+              continue;
+            }
+          } catch (e) {}
+        }
+
+        return {
+          contentString: outputChunks.join("\n\n"),
+          usageData: usageData,
+          messageId: activeMsgId
+        };
+      }
+
+      if (typeof exports !== "undefined") {
+        exports.getRequestInfo = getRequestInfo;
+        exports.getUsageData = getUsageData;
+        exports.convertOpenAiToAnthropic = convertOpenAiToAnthropic;
+        exports.convertAnthropicToOpenAi = convertAnthropicToOpenAi;
+        exports.convertAnthropicStreamToOpenAi = convertAnthropicStreamToOpenAi;
+      }
+tests: []
