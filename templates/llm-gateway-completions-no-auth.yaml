@@ -17,6 +17,8 @@ parameters:
     default: /v1/chat/completions
   - name: GoogleCloudProject
     default: "{organization.name}"
+  - name: GoogleCloudRegion
+    default: global
   - name: SimpleModel
     default: google/gemini-3.5-flash-lite
   - name: MediumModel
@@ -51,8 +53,8 @@ targets:
   - name: anthropic
     url: https://api.anthropic.com
   - name: googlecloud-oai
-    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/global/endpoints/openapi/chat/completions
+    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/endpoints/openapi/chat/completions
   - name: googlecloud
-    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/global/publishers/{ai.provider}/models/{ai.model}:{ai.method}
+    url: https://aiplatform.googleapis.com/v1/projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/publishers/{ai.provider}/models/{ai.model}:{ai.method}
   - name: openai
     url: https://api.openai.com
