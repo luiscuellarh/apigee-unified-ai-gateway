@@ -9,10 +9,16 @@ categories: []
 parameters:
   - name: GoogleCloudProject
     default: "{organization.name}"
+  - name: GoogleCloudRegion
+    default: "{system.region.name}"
+  - name: ModelArmorTemplateRequestName
+    default: bbva-energy-ma-template-input 
+  - name: ModelArmorTemplateResponseName
+    default: bbva-energy-ma-template-output
   - name: ModelArmorTemplateRequest
-    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateRequest}"
+    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateRequestName}"
   - name: ModelArmorTemplateResponse
-    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateResponse}"
+    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateResponseName}"
 defaultEndpoint:
   name: default
   basePath: /ai-security-modelarmor
@@ -52,7 +58,7 @@ policies:
         IgnoreUnresolvedVariables: "false"
         DisplayName: SUP-SanitizePrompt
         ModelArmor:
-          TemplateName: "{ModelArmorTemplate}"
+          TemplateName: "{ModelArmorTemplateRequest}"
         UserPromptSource: "{ai.requestPrompt}"
   - name: SMR-SanitizeResponse
     type: SanitizeModelResponse
@@ -66,7 +72,7 @@ policies:
         DisplayName: SMR-SanitizeResponse
         IgnoreUnresolvedVariables: "true"
         ModelArmor:
-          TemplateName: "{ModelArmorTemplate}"
+          TemplateName: "{ModelArmorTemplateResponse}"
         UserPromptSource: "{ai.requestPrompt}"
         LLMResponseSource:
           _text: "{jsonPath('$.choices[-1].message.content',response.content,true)}"
