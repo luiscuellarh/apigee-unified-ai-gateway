@@ -9,8 +9,10 @@ categories: []
 parameters:
   - name: GoogleCloudProject
     default: "{organization.name}"
-  - name: ModelArmorTemplate
-    default: "projects/{GoogleCloudProject}/locations/eu/templates/default-ma-template"
+  - name: ModelArmorTemplateRequest
+    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateRequest}"
+  - name: ModelArmorTemplateResponse
+    default: "projects/{GoogleCloudProject}/locations/{GoogleCloudRegion}/templates/{ModelArmorTemplateResponse}"
 defaultEndpoint:
   name: default
   basePath: /ai-security-modelarmor
