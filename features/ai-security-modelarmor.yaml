@@ -12,7 +12,7 @@ parameters:
   - name: GoogleCloudRegion
     default: "{system.region.name}"
   - name: ModelArmorTemplateRequestName
-    default: bbva-energy-ma-template-input 
+    default: bbva-energy-ma-template-input
   - name: ModelArmorTemplateResponseName
     default: bbva-energy-ma-template-output
   - name: ModelArmorTemplateRequest
@@ -30,10 +30,12 @@ defaultEndpoint:
       mode: Request
       steps:
         - name: SUP-SanitizePrompt
+        - name: JS-SetSanitizedPrompt
     - name: PostFlow
       mode: Response
       steps:
         - name: SMR-SanitizeResponse
+          condition: ai.requestType != "streaming" and response.status.code == 200 and response.content != null and response.content != ""
   faultRules: []
 defaultTarget:
   name: default
@@ -60,6 +62,24 @@ policies:
         ModelArmor:
           TemplateName: "{ModelArmorTemplateRequest}"
         UserPromptSource: "{ai.requestPrompt}"
+  - name: JS-SetSanitizedPrompt
+    type: Javascript
+    content:
+      Javascript:
+        metadata:
+          continueOnError: "false"
+          enabled: "true"
+          timeLimit: "200"
+          name: JS-SetSanitizedPrompt
+        DisplayName: JS-SetSanitizedPrompt
+        Properties: {}
+        Source: |
+          var sanitized = context.getVariable("sanitizeuserprompt.SUP-SanitizePrompt.sanitizedUserPrompt");
+          if (sanitized && sanitized.length > 0) {
+            context.setVariable("ai.requestPrompt", sanitized);
+            context.setVariable("user.input", sanitized);
+            context.setVariable("user.inputChanged", "true");
+          }
   - name: SMR-SanitizeResponse
     type: SanitizeModelResponse
     content:
