@@ -1,0 +1,31 @@
+name: loan-agent@example.com
+displayName: ""
+type: user
+gateway: apigee
+schemaVersion: 1.0.0
+email: loan-agent@example.com
+firstName: loan
+lastName: agent
+userName: loan-agent@example.com
+status: active
+attributes: []
+apps:
+  - name: Loan Agent App
+    displayName: Loan Agent App
+    description: ""
+    callbackUrl: ""
+    status: approved
+    products:
+      - ai-loan-agent-package
+    scopes: []
+    attributes: []
+    credentials:
+      - consumerKey: loan-agent-app-key-123
+        consumerSecret: loan-agent-app-secret-123
+        status: approved
+        issuedAt: "1788775546367"
+        expiresAt: "-1"
+        products:
+          - ai-loan-agent-package
+        scopes: []
+        attributes: []
