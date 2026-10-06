@@ -1,0 +1,55 @@
+name: mcp-proxy-loan
+displayName: mcp-proxy-loan
+type: feature
+description: mcp-proxy-loanservice
+documentation: ""
+gateway: apigee
+schemaVersion: 1.0.0
+categories: []
+parameters: []
+endpoints:
+  - name: default
+    basePath: /loanservice/mcp
+    routes:
+      - name: default
+        target: default
+    flows:
+      - name: PreFlow
+        mode: Request
+        steps:
+          - name: PP-ParsePayload
+    faultRules: []
+targets:
+  - name: default
+    url: https://mcp-loans-bbva-1052672297239.europe-west1.run.app/mcp
+    flows: []
+    faultRules: []
+    httpTargetConnection:
+      Properties:
+        Property:
+          - metadata:
+              name: response.streaming.enabled
+            _text: "true"
+          - metadata:
+              name: request.streaming.enabled
+            _text: "true"
+      Authentication:
+        GoogleIDToken:
+          Audience: https://mcp-loans-bbva-1052672297239.europe-west1.run.app
+      URL: https://mcp-loans-bbva-1052672297239.europe-west1.run.app/mcp
+policies:
+  - name: PP-ParsePayload
+    type: ParsePayload
+    content:
+      ParsePayload:
+        metadata:
+          async: "false"
+          continueOnError: "false"
+          enabled: "true"
+          name: PP-ParsePayload
+        DisplayName: PP-ParsePayload
+        Source: request
+        PayloadType: JSON-RPC-2.0
+        Protocol: MCP
+resources: []
+tests: []
