@@ -1,0 +1,29 @@
+name: mcp-gateway-loan-product
+displayName: ""
+type: template
+description: API template for mcp-gateway-loan-product
+documentation: ""
+gateway: apigee
+schemaVersion: 1.0.0
+features:
+  - ../features/api-quota-policy-spike-oauth.yaml
+  - ../features/mcp-loan-endpoint.yaml
+categories: []
+parameters: []
+defaultEndpoint:
+  name: default
+  basePath: /loanservice/mcp
+  routes:
+    - name: default
+      target: default
+  flows: []
+defaultTarget:
+  name: default
+  url: https://mcp-loans-bbva-1052672297239.europe-west1.run.app/mcp
+  flows: []
+  scopes: []
+endpoints: []
+targets: []
+policies: []
+resources: []
+tests: []
