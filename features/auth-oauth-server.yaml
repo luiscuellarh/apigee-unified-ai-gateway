@@ -1,0 +1,48 @@
+name: auth-oauth-server
+displayName: "OAuth 2.0 Server (Client Credentials)"
+type: feature
+description: "Implements the OAuth 2.0 client credentials grant type flow. Exposes a /v1/oauth/token endpoint to generate access tokens."
+documentation: "https://docs.apigee.com/api-platform/security/oauth/implementing-oauth2-client-credentials"
+gateway: apigee
+schemaVersion: 1.0.0
+categories:
+  - security
+  - auth
+parameters: []
+defaultEndpoint:
+  name: oauth
+  basePath: /v1/oauth
+  routes:
+    - name: default
+      target: default
+  flows:
+    - name: GenerateAccessToken
+      condition: (proxy.pathsuffix MatchesPath "/token") and (request.verb = "POST")
+      mode: Request
+      steps:
+        - name: OA-GenerateAccessToken-ClientCredentials
+defaultTarget:
+  name: default
+  url: https://mocktarget.apigee.net
+  flows: []
+  scopes: []
+endpoints: []
+targets: []
+policies:
+  - name: OA-GenerateAccessToken-ClientCredentials
+    type: OAuthV2
+    content:
+      OAuthV2:
+        metadata:
+          name: OA-GenerateAccessToken-ClientCredentials
+          enabled: "true"
+          continueOnError: "false"
+          async: "false"
+        DisplayName: "OAuthv2 - Generate Access Token - Client Credentials"
+        Operation: GenerateAccessToken
+        SupportedGrantTypes:
+          GrantType: client_credentials
+        GenerateResponse:
+          enabled: "true"
+resources: []
+tests: []
