@@ -178,6 +178,14 @@ policies:
               context.setVariable("response.content", contentString);
               usageData = nonStreamResult.usageData;
             }
+          } else if (aiProtocol === "openai" && aiProvider === "google" && currentFlow !== "EventFlow") {
+            var targetRoute = context.getVariable("target.route") || context.getVariable("ai.targetRoute");
+            if (targetRoute === "googlecloud" && contentString) {
+              var parsedResp = safeJsonParse(contentString);
+              var convertedResp = convertGeminiToOpenAi(parsedResp || contentString, modelName);
+              contentString = JSON.stringify(convertedResp);
+              context.setVariable("response.content", contentString);
+            }
           }
 
           if (!usageData) {
@@ -1131,6 +1139,174 @@ resources:
         };
       }
 
+      function convertGeminiToOpenAi(geminiResponse, modelName) {
+        if (!geminiResponse) return {};
+
+        var openAiResponse = {
+          id: "chatcmpl-" + Math.random().toString(36).substring(2, 11),
+          object: "chat.completion",
+          created: Math.floor(Date.now() / 1000),
+          model: modelName || "gemini",
+          choices: [],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0
+          }
+        };
+
+        if (geminiResponse.candidates && Array.isArray(geminiResponse.candidates)) {
+          for (var i = 0; i < geminiResponse.candidates.length; i++) {
+            var candidate = geminiResponse.candidates[i];
+            var text = "";
+
+            if (candidate.content && candidate.content.parts && Array.isArray(candidate.content.parts)) {
+              for (var p = 0; p < candidate.content.parts.length; p++) {
+                if (candidate.content.parts[p] && candidate.content.parts[p].text) {
+                  text += candidate.content.parts[p].text;
+                }
+              }
+            }
+
+            var finishReason = "stop";
+            if (candidate.finishReason) {
+              if (candidate.finishReason === "MAX_TOKENS") finishReason = "length";
+              else if (candidate.finishReason === "SAFETY") finishReason = "content_filter";
+              else finishReason = candidate.finishReason.toLowerCase();
+            }
+
+            openAiResponse.choices.push({
+              index: candidate.index !== undefined ? candidate.index : i,
+              message: {
+                role: "assistant",
+                content: text
+              },
+              finish_reason: finishReason
+            });
+          }
+        }
+
+        if (geminiResponse.usageMetadata) {
+          var promptTokens = geminiResponse.usageMetadata.promptTokenCount || 0;
+          var completionTokens = geminiResponse.usageMetadata.candidatesTokenCount || 0;
+          var totalTokens = geminiResponse.usageMetadata.totalTokenCount || (promptTokens + completionTokens);
+
+          openAiResponse.usage = {
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: totalTokens
+          };
+        }
+
+        return openAiResponse;
+      }
+
+      function getModelTokenLimit(modelName, quotaData) {
+        var limit = -1;
+        if (!modelName || !quotaData) {
+          return limit;
+        }
+
+        var data = quotaData;
+        if (typeof quotaData === "string") {
+          try {
+            data = JSON.parse(quotaData);
+          } catch (e) {
+            return limit;
+          }
+        } else if (quotaData && quotaData.asJSON) {
+          data = quotaData.asJSON;
+        }
+
+        if (!data || !Array.isArray(data)) {
+          return limit;
+        }
+
+        var cleanModel = modelName;
+        if (modelName.indexOf("/") !== -1) {
+          var parts = modelName.split("/");
+          cleanModel = parts[parts.length - 1];
+        }
+
+        for (var i = 0; i < data.length; i++) {
+          var entry = data[i];
+          if (entry && entry.llmOperations && Array.isArray(entry.llmOperations)) {
+            for (var j = 0; j < entry.llmOperations.length; j++) {
+              var op = entry.llmOperations[j];
+              if (op && op.model) {
+                var opModel = op.model;
+                var cleanOpModel = opModel;
+                if (opModel.indexOf("/") !== -1) {
+                  var opParts = opModel.split("/");
+                  cleanOpModel = opParts[opParts.length - 1];
+                }
+                if (opModel === modelName || cleanOpModel === cleanModel) {
+                  if (
+                    entry.llmTokenQuota &&
+                    entry.llmTokenQuota.limit !== undefined &&
+                    entry.llmTokenQuota.limit !== null &&
+                    entry.llmTokenQuota.limit !== ""
+                  ) {
+                    return entry.llmTokenQuota.limit;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        return limit;
+      }
+
+      function isModelAllowed(modelName, quotaData) {
+        if (!modelName || !quotaData) {
+          return false;
+        }
+
+        var data = quotaData;
+        if (typeof quotaData === "string" || (typeof quotaData === "object" && !Array.isArray(quotaData) && !quotaData.asJSON)) {
+          try {
+            data = JSON.parse(String(quotaData));
+          } catch (e) {
+            return String(quotaData).indexOf(modelName) !== -1;
+          }
+        } else if (quotaData && quotaData.asJSON) {
+          data = quotaData.asJSON;
+        }
+
+        if (!data || !Array.isArray(data)) {
+          return false;
+        }
+
+        var cleanModel = modelName;
+        if (modelName.indexOf("/") !== -1) {
+          var parts = modelName.split("/");
+          cleanModel = parts[parts.length - 1];
+        }
+
+        for (var i = 0; i < data.length; i++) {
+          var entry = data[i];
+          if (entry && entry.llmOperations && Array.isArray(entry.llmOperations)) {
+            for (var j = 0; j < entry.llmOperations.length; j++) {
+              var op = entry.llmOperations[j];
+              if (op && op.model) {
+                var opModel = op.model;
+                var cleanOpModel = opModel;
+                if (opModel.indexOf("/") !== -1) {
+                  var opParts = opModel.split("/");
+                  cleanOpModel = opParts[opParts.length - 1];
+                }
+                if (opModel === "*" || cleanOpModel === "*" || opModel === modelName || cleanOpModel === cleanModel || opModel === cleanModel || cleanOpModel === modelName) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+
+        return false;
+      }
+
       if (typeof exports !== "undefined") {
         exports.getRequestInfo = getRequestInfo;
         exports.getUsageData = getUsageData;
@@ -1138,5 +1314,7 @@ resources:
         exports.convertAnthropicToOpenAi = convertAnthropicToOpenAi;
         exports.convertAnthropicStreamToOpenAi = convertAnthropicStreamToOpenAi;
         exports.setPrompt = setPrompt;
+        exports.isModelAllowed = isModelAllowed;
+        exports.getModelTokenLimit = getModelTokenLimit;
       }
 tests: []
