@@ -1,0 +1,29 @@
+name: mcp-gateway-payment-product
+displayName: ""
+type: template
+description: API template for mcp-gateway-payment-product
+documentation: ""
+gateway: apigee
+schemaVersion: 1.0.0
+features:
+  - ../features/auth-apikey-verify.yaml
+  - ../features/mcp-payment-endpoint.yaml
+categories: []
+parameters: []
+defaultEndpoint:
+  name: default
+  basePath: /paymentservice/mcp
+  routes:
+    - name: default
+      target: default
+  flows: []
+defaultTarget:
+  name: default
+  url: https://mcp-payments-bbva-1052672297239.europe-west1.run.app/mcp
+  flows: []
+  scopes: []
+endpoints: []
+targets: []
+policies: []
+resources: []
+tests: []
