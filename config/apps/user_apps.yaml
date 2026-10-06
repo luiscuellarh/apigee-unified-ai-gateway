@@ -1,0 +1,31 @@
+name: test@example.com
+displayName: ""
+type: user
+gateway: apigee
+schemaVersion: 1.0.0
+email: test@example.com
+firstName: Test
+lastName: User
+userName: test@example.com
+status: active
+attributes: []
+apps:
+  - name: Premium App
+    displayName: Premium App
+    description: ""
+    callbackUrl: ""
+    status: approved
+    products:
+      - ai-premium-package
+    scopes: []
+    attributes: []
+    credentials:
+      - consumerKey: premium-app-key-123
+        consumerSecret: premium-app-secret-123
+        status: approved
+        issuedAt: "1788775546367"
+        expiresAt: "-1"
+        products:
+          - ai-premium-package
+        scopes: []
+        attributes: []
