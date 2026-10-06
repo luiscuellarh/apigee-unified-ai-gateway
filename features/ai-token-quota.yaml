@@ -95,31 +95,129 @@ policies:
           name: JS-ValidateRequest
         DisplayName: JS-ValidateRequest
         Properties: {}
-        Source: "
+        Source: |
+          function checkModelAllowed(modelName, quotaData) {
+            if (!modelName || !quotaData) {
+              return false;
+            }
 
-          var productContent =
-          context.getVariable(\"verifyapikey.VA-VerifyKey.apiproduct.developer.\
-          llmQuota.filteredConfigs\");
+            var data = quotaData;
+            if (typeof quotaData === "string" || (typeof quotaData === "object" && !Array.isArray(quotaData) && !quotaData.asJSON)) {
+              try {
+                data = JSON.parse(String(quotaData));
+              } catch (e) {
+                return String(quotaData).indexOf(modelName) !== -1;
+              }
+            } else if (quotaData && quotaData.asJSON) {
+              data = quotaData.asJSON;
+            }
 
-          var model = context.getVariable(\"ai.model\");
+            if (!data || !Array.isArray(data)) {
+              return String(quotaData).indexOf(modelName) !== -1;
+            }
 
+            var cleanModel = modelName;
+            if (modelName.indexOf("/") !== -1) {
+              var parts = modelName.split("/");
+              cleanModel = parts[parts.length - 1];
+            }
 
-          if (!productContent || !productContent.includes(model)) {
-
-          \  throw \"MODEL_NOT_ALLOWED\";
-
+            for (var i = 0; i < data.length; i++) {
+              var entry = data[i];
+              if (entry && entry.llmOperations && Array.isArray(entry.llmOperations)) {
+                for (var j = 0; j < entry.llmOperations.length; j++) {
+                  var op = entry.llmOperations[j];
+                  if (op && op.model) {
+                    var opModel = op.model;
+                    var cleanOpModel = opModel;
+                    if (opModel.indexOf("/") !== -1) {
+                      var opParts = opModel.split("/");
+                      cleanOpModel = opParts[opParts.length - 1];
+                    }
+                    if (
+                      opModel === "*" ||
+                      cleanOpModel === "*" ||
+                      opModel === modelName ||
+                      cleanOpModel === cleanModel ||
+                      opModel === cleanModel ||
+                      cleanOpModel === modelName
+                    ) {
+                      return true;
+                    }
+                  }
+                }
+              }
+            }
+            return false;
           }
 
+          function extractTokenLimit(modelName, quotaData) {
+            var limit = -1;
+            if (!modelName || !quotaData) {
+              return limit;
+            }
 
-          var modelTokenLimit = getModelTokenLimit(model, productContent);
+            var data = quotaData;
+            if (typeof quotaData === "string") {
+              try {
+                data = JSON.parse(quotaData);
+              } catch (e) {
+                return limit;
+              }
+            } else if (quotaData && quotaData.asJSON) {
+              data = quotaData.asJSON;
+            }
 
+            if (!data || !Array.isArray(data)) {
+              return limit;
+            }
+
+            var cleanModel = modelName;
+            if (modelName.indexOf("/") !== -1) {
+              var parts = modelName.split("/");
+              cleanModel = parts[parts.length - 1];
+            }
+
+            for (var i = 0; i < data.length; i++) {
+              var entry = data[i];
+              if (entry && entry.llmOperations && Array.isArray(entry.llmOperations)) {
+                for (var j = 0; j < entry.llmOperations.length; j++) {
+                  var op = entry.llmOperations[j];
+                  if (op && op.model) {
+                    var opModel = op.model;
+                    var cleanOpModel = opModel;
+                    if (opModel.indexOf("/") !== -1) {
+                      var opParts = opModel.split("/");
+                      cleanOpModel = opParts[opParts.length - 1];
+                    }
+                    if (opModel === modelName || cleanOpModel === cleanModel) {
+                      if (
+                        entry.llmTokenQuota &&
+                        entry.llmTokenQuota.limit !== undefined &&
+                        entry.llmTokenQuota.limit !== null &&
+                        entry.llmTokenQuota.limit !== ""
+                      ) {
+                        return entry.llmTokenQuota.limit;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            return limit;
+          }
+
+          var productContent = context.getVariable("verifyapikey.VA-VerifyKey.apiproduct.developer.llmQuota.filteredConfigs");
+          var model = context.getVariable("ai.model");
+
+          if (!checkModelAllowed(model, productContent)) {
+            throw "MODEL_NOT_ALLOWED";
+          }
+
+          var modelTokenLimit = extractTokenLimit(model, productContent);
           if (modelTokenLimit != -1) {
-
-          \  context.setVariable(\"ai.modelTokenLimit\", modelTokenLimit);
-
+            context.setVariable("ai.modelTokenLimit", modelTokenLimit);
           }
-
-          \  "
         IncludeURL: jsc://ai-functions.js
   - name: LTQ-QuotaCount
     type: LLMTokenQuota
@@ -2004,6 +2102,55 @@ resources:
         return limit;
       }
 
+      function isModelAllowed(modelName, quotaData) {
+        if (!modelName || !quotaData) {
+          return false;
+        }
+
+        var data = quotaData;
+        if (typeof quotaData === "string" || (typeof quotaData === "object" && !Array.isArray(quotaData) && !quotaData.asJSON)) {
+          try {
+            data = JSON.parse(String(quotaData));
+          } catch (e) {
+            return String(quotaData).indexOf(modelName) !== -1;
+          }
+        } else if (quotaData && quotaData.asJSON) {
+          data = quotaData.asJSON;
+        }
+
+        if (!data || !Array.isArray(data)) {
+          return false;
+        }
+
+        var cleanModel = modelName;
+        if (modelName.indexOf("/") !== -1) {
+          var parts = modelName.split("/");
+          cleanModel = parts[parts.length - 1];
+        }
+
+        for (var i = 0; i < data.length; i++) {
+          var entry = data[i];
+          if (entry && entry.llmOperations && Array.isArray(entry.llmOperations)) {
+            for (var j = 0; j < entry.llmOperations.length; j++) {
+              var op = entry.llmOperations[j];
+              if (op && op.model) {
+                var opModel = op.model;
+                var cleanOpModel = opModel;
+                if (opModel.indexOf("/") !== -1) {
+                  var opParts = opModel.split("/");
+                  cleanOpModel = opParts[opParts.length - 1];
+                }
+                if (opModel === "*" || cleanOpModel === "*" || opModel === modelName || cleanOpModel === cleanModel || opModel === cleanModel || cleanOpModel === modelName) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+
+        return false;
+      }
+
       function getModelList(quotaData) {
         var result = {
           object: "list",
@@ -2084,6 +2231,7 @@ resources:
         exports.convertOpenAiToAnthropic = convertOpenAiToAnthropic;
         exports.convertAnthropicToOpenAi = convertAnthropicToOpenAi;
         exports.convertAnthropicStreamToOpenAi = convertAnthropicStreamToOpenAi;
+        exports.isModelAllowed = isModelAllowed;
         exports.getModelTokenLimit = getModelTokenLimit;
         exports.getModelList = getModelList;
       }
