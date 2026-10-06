@@ -1,0 +1,31 @@
+name: payment-agent@example.com
+displayName: ""
+type: user
+gateway: apigee
+schemaVersion: 1.0.0
+email: payment-agent@example.com
+firstName: Payment
+lastName: Agent
+userName: payment-agent@example.com
+status: active
+attributes: []
+apps:
+  - name: Payment Agent App
+    displayName: Payment Agent  App
+    description: ""
+    callbackUrl: ""
+    status: approved
+    products:
+      - ai-payment-package
+    scopes: []
+    attributes: []
+    credentials:
+      - consumerKey: payment-agent-app-key-123
+        consumerSecret: payment-agent-app-secret-123
+        status: approved
+        issuedAt: "1788775546367"
+        expiresAt: "-1"
+        products:
+          - ai-payment-package
+        scopes: []
+        attributes: []
