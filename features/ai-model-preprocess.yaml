@@ -124,7 +124,13 @@ policies:
           var currentModel = reqInfo.rawModelName || reqInfo.cleanModelName || reqInfo.modelName || "";
 
           // 1. Model Mapping
-          var modelMapping = context.getVariable("propertyset.ai.ModelMapping") || "{ModelMapping}";
+          var modelMapping = context.getVariable("propertyset.ai.ModelMapping") || context.getVariable("propertyset.ModelMapping") || "";
+          if (!modelMapping || modelMapping === "true" || modelMapping === "{ModelMapping}" || modelMapping.indexOf("=") === -1) {
+            modelMapping = "{ModelMapping}";
+            if (modelMapping === "{" + "ModelMapping}" || modelMapping.indexOf("=") === -1) {
+              modelMapping = "gemini-flash-latest=gemini-3.8-flash,gemini-2.5-flash=gemini-3.8-flash";
+            }
+          }
           if (modelMapping.indexOf("=") === -1) {
             modelMapping = "";
           }
@@ -202,7 +208,13 @@ policies:
             return text === p;
           }
 
-          var modelRouting = context.getVariable("propertyset.ai.ModelRouting") || "{ModelRouting}";
+          var modelRouting = context.getVariable("propertyset.ai.ModelRouting") || context.getVariable("propertyset.ModelRouting") || "";
+          if (!modelRouting || modelRouting === "true" || modelRouting === "{ModelRouting}" || modelRouting.indexOf("=") === -1) {
+            modelRouting = "{ModelRouting}";
+            if (modelRouting === "{" + "ModelRouting}" || modelRouting.indexOf("=") === -1) {
+              modelRouting = "'google/*'=googlecloud-oai,'zai-org/*'=googlecloud-oai,'anthropic/*'=googlecloud";
+            }
+          }
           if (modelRouting.indexOf("=") === -1) {
             modelRouting = "";
           }
@@ -239,7 +251,7 @@ policies:
           // Fallback target route if not matched from ModelRouting
           if (!targetRoute) {
             if (provider === "google") {
-              targetRoute = "googlecloud";
+              targetRoute = (reqInfo.protocol === "openai") ? "googlecloud-oai" : "googlecloud";
             } else if (provider === "anthropic") {
               targetRoute = "anthropic";
             } else if (provider === "openai") {
@@ -384,7 +396,13 @@ policies:
           var currentModel = selectedModel;
 
           // 1. Model Mapping
-          var modelMapping = context.getVariable("propertyset.ai.ModelMapping") || "{ModelMapping}";
+          var modelMapping = context.getVariable("propertyset.ai.ModelMapping") || context.getVariable("propertyset.ModelMapping") || "";
+          if (!modelMapping || modelMapping === "true" || modelMapping === "{ModelMapping}" || modelMapping.indexOf("=") === -1) {
+            modelMapping = "{ModelMapping}";
+            if (modelMapping === "{" + "ModelMapping}" || modelMapping.indexOf("=") === -1) {
+              modelMapping = "gemini-flash-latest=gemini-3.8-flash,gemini-2.5-flash=gemini-3.8-flash";
+            }
+          }
           if (modelMapping.indexOf("=") === -1) {
             modelMapping = "";
           }
@@ -458,7 +476,13 @@ policies:
             return text === p;
           }
 
-          var modelRouting = context.getVariable("propertyset.ai.ModelRouting") || "{ModelRouting}";
+          var modelRouting = context.getVariable("propertyset.ai.ModelRouting") || context.getVariable("propertyset.ModelRouting") || "";
+          if (!modelRouting || modelRouting === "true" || modelRouting === "{ModelRouting}" || modelRouting.indexOf("=") === -1) {
+            modelRouting = "{ModelRouting}";
+            if (modelRouting === "{" + "ModelRouting}" || modelRouting.indexOf("=") === -1) {
+              modelRouting = "'google/*'=googlecloud-oai,'zai-org/*'=googlecloud-oai,'anthropic/*'=googlecloud";
+            }
+          }
           if (modelRouting.indexOf("=") === -1) {
             modelRouting = "";
           }
@@ -496,6 +520,7 @@ policies:
           if (!targetRoute) {
             if (provider === "google") {
               targetRoute = "googlecloud";
+              targetRoute = "googlecloud-oai";
             } else if (provider === "anthropic") {
               targetRoute = "anthropic";
             } else if (provider === "openai") {
@@ -553,6 +578,10 @@ policies:
             payloadModel = effectiveProvider + "/" + payloadModel;
           }
 
+          if (protocol === "openai" && effectiveProvider === "google" && targetRoute === "googlecloud") {
+            requestContent = convertOpenAiToGemini(requestContent || rawBody);
+          }
+
           if (protocol === "openai" && effectiveProvider === "anthropic") {
             var reqInfo = {
               protocol: protocol,
@@ -597,6 +626,144 @@ resources:
   - name: ai-functions.js
     type: jsc
     content: |
+      function convertOpenAiToGemini(openAiPayload) {
+        if (!openAiPayload) return {};
+
+        var geminiPayload = {
+          contents: []
+        };
+
+        if (openAiPayload.messages && Array.isArray(openAiPayload.messages)) {
+          var systemInstructionParts = [];
+
+          for (var i = 0; i < openAiPayload.messages.length; i++) {
+            var msg = openAiPayload.messages[i];
+            if (!msg) continue;
+            var role = msg.role;
+            var content = msg.content;
+
+            if (role === "system" || role === "developer") {
+              if (typeof content === "string") {
+                systemInstructionParts.push({ text: content });
+              } else if (Array.isArray(content)) {
+                for (var j = 0; j < content.length; j++) {
+                  if (content[j] && content[j].type === "text" && content[j].text) {
+                    systemInstructionParts.push({ text: content[j].text });
+                  } else if (typeof content[j] === "string") {
+                    systemInstructionParts.push({ text: content[j] });
+                  }
+                }
+              }
+            } else {
+              var geminiRole = (role === "assistant") ? "model" : "user";
+              var parts = [];
+
+              if (typeof content === "string") {
+                parts.push({ text: content });
+              } else if (Array.isArray(content)) {
+                for (var k = 0; k < content.length; k++) {
+                  if (content[k] && content[k].type === "text" && content[k].text) {
+                    parts.push({ text: content[k].text });
+                  } else if (typeof content[k] === "string") {
+                    parts.push({ text: content[k] });
+                  }
+                }
+              }
+
+              if (parts.length > 0) {
+                geminiPayload.contents.push({
+                  role: geminiRole,
+                  parts: parts
+                });
+              }
+            }
+          }
+
+          if (systemInstructionParts.length > 0) {
+            geminiPayload.systemInstruction = {
+              parts: systemInstructionParts
+            };
+          }
+        }
+
+        var generationConfig = {};
+        if (openAiPayload.temperature !== undefined) generationConfig.temperature = openAiPayload.temperature;
+        if (openAiPayload.top_p !== undefined) generationConfig.topP = openAiPayload.top_p;
+        if (openAiPayload.max_tokens !== undefined) generationConfig.maxOutputTokens = openAiPayload.max_tokens;
+        else if (openAiPayload.max_completion_tokens !== undefined) generationConfig.maxOutputTokens = openAiPayload.max_completion_tokens;
+        if (openAiPayload.stop !== undefined) {
+          generationConfig.stopSequences = Array.isArray(openAiPayload.stop) ? openAiPayload.stop : [openAiPayload.stop];
+        }
+
+        if (Object.keys(generationConfig).length > 0) {
+          geminiPayload.generationConfig = generationConfig;
+        }
+
+        return geminiPayload;
+      }
+
+      function convertGeminiToOpenAi(geminiResponse, modelName) {
+        if (!geminiResponse) return {};
+
+        var openAiResponse = {
+          id: "chatcmpl-" + Math.random().toString(36).substring(2, 11),
+          object: "chat.completion",
+          created: Math.floor(Date.now() / 1000),
+          model: modelName || "gemini",
+          choices: [],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0
+          }
+        };
+
+        if (geminiResponse.candidates && Array.isArray(geminiResponse.candidates)) {
+          for (var i = 0; i < geminiResponse.candidates.length; i++) {
+            var candidate = geminiResponse.candidates[i];
+            var text = "";
+
+            if (candidate.content && candidate.content.parts && Array.isArray(candidate.content.parts)) {
+              for (var p = 0; p < candidate.content.parts.length; p++) {
+                if (candidate.content.parts[p] && candidate.content.parts[p].text) {
+                  text += candidate.content.parts[p].text;
+                }
+              }
+            }
+
+            var finishReason = "stop";
+            if (candidate.finishReason) {
+              if (candidate.finishReason === "MAX_TOKENS") finishReason = "length";
+              else if (candidate.finishReason === "SAFETY") finishReason = "content_filter";
+              else finishReason = candidate.finishReason.toLowerCase();
+            }
+
+            openAiResponse.choices.push({
+              index: candidate.index !== undefined ? candidate.index : i,
+              message: {
+                role: "assistant",
+                content: text
+              },
+              finish_reason: finishReason
+            });
+          }
+        }
+
+        if (geminiResponse.usageMetadata) {
+          var promptTokens = geminiResponse.usageMetadata.promptTokenCount || 0;
+          var completionTokens = geminiResponse.usageMetadata.candidatesTokenCount || 0;
+          var totalTokens = geminiResponse.usageMetadata.totalTokenCount || (promptTokens + completionTokens);
+
+          openAiResponse.usage = {
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: totalTokens
+          };
+        }
+
+        return openAiResponse;
+      }
+
       function getBodyString(content) {
         if (content === null || content === undefined) return "";
         if (typeof content === "string") return content;
