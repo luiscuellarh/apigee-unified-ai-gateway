@@ -1,0 +1,87 @@
+name: api-quota-policy-spike
+displayName: "OAuth Token Quota & Spike Arrest"
+type: feature
+description: "Verifies an opaque OAuth 2.0 access token, applies a 30 QPS Spike Arrest, and enforces API Product quota."
+documentation: ""
+gateway: apigee
+schemaVersion: 1.0.0
+categories:
+  - traffic
+  - security
+parameters: []
+defaultEndpoint:
+  name: default
+  basePath: /v1/product
+  routes:
+    - name: default
+      target: default
+  flows:
+    - name: PreFlow
+      mode: Request
+      steps:
+        - name: OA-VerifyAccessToken
+        - name: SA-SpikeArrest-30qps
+        - name: QU-EnforceQuota
+defaultTarget:
+  name: default
+  url: https://mocktarget.apigee.net
+  flows: []
+  scopes: []
+endpoints: []
+targets: []
+policies:
+  - name: OA-VerifyAccessToken
+    type: OAuthV2
+    content:
+      OAuthV2:
+        metadata:
+          name: OA-VerifyAccessToken
+          enabled: "true"
+          continueOnError: "false"
+          async: "false"
+        DisplayName: "OAuthV2 - Verify Access Token"
+        Operation: VerifyAccessToken
+  - name: SA-SpikeArrest-30qps
+    type: SpikeArrest
+    content:
+      SpikeArrest:
+        metadata:
+          name: SA-SpikeArrest-30qps
+          enabled: "true"
+          continueOnError: "false"
+          async: "false"
+        DisplayName: "Spike Arrest 30 QPS"
+        Properties: {}
+        Identifier:
+          metadata:
+            ref: client_id
+        Rate: 30ps
+  - name: QU-EnforceQuota
+    type: Quota
+    content:
+      Quota:
+        metadata:
+          name: QU-EnforceQuota
+          enabled: "true"
+          continueOnError: "false"
+          async: "false"
+          type: calendar
+        DisplayName: "Quota - Enforce Product Quota"
+        Properties: {}
+        Identifier:
+          metadata:
+            ref: client_id
+        UseQuotaConfigInAPIProduct:
+          metadata:
+            stepName: OA-VerifyAccessToken
+          DefaultQuota:
+            Allow:
+              metadata:
+                count: "1000"
+            Interval: "1"
+            TimeUnit: minute
+        StartTime: "2024-01-01 00:00:00"
+        Distributed: "true"
+        Synchronous: "true"
+resources: []
+tests: []
