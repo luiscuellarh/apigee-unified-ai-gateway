@@ -13,7 +13,8 @@ quotaInterval: "1"
 quotaTimeUnit: minute
 proxies:
   - llm-gateway-completions-auth-ma-sdp
-  - mcp-gateway-payment-product
+  - llm-gateway-completions-auth-ma-sdp-semantic
+  - MCP-CustomerService
 llmOperations:
   - apiSource: llm-gateway-completions-auth-ma-sdp
     operations:
@@ -48,6 +49,20 @@ llmOperations:
       limit: "10000"
       interval: "1"
       timeUnit: hour
+  - apiSource: llm-gateway-completions-auth-ma-sdp-semantic
+    operations:
+      - name: /
+        methods:
+          - POST
+        model: gemini-3.5-flash-lite
+  - apiSource: llm-gateway-completions-auth-ma-sdp-semantic
+    operations:
+      - name: /
+        methods:
+          - POST
+        model: gemini-3.8-flash
+
+
 payloadOperations:
   - apiSource: mcp-gateway-payment-product
     protocol: MCP
